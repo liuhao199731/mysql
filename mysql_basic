@@ -1,0 +1,285 @@
+mysql数据库  关系型数据库
+
+库阶段
+启动数据库:
+sudo service mysql start|stop|restart|status
+连接数据库:
+mysql -hlocalhost -uroot -p123456
+
+查看已有库:
+show databases;
+
+创建库:
+create database stu character set utf8;
+
+查看创建库的语句:
+show create database stu;
+
+查看当前所在库:
+select database();
+
+切换库:
+use stu;
+
+删除库:
+drop database stu;
+
+表阶段
+创建表:
+create table books (id int primary key auto_increment,title varchar(64) not null,author varchar(32) default "佚名",price float,publication varchar(256),comment text);
+enum用来存储给出的一个值
+set用来存储给出的值中一个或多个值
+
+约束条件:
+如果你想设置数字为无符号则加上 unsigned。
+如果你不想字段为 NULL 可以设置字段的属性为 NOT NULL， 在操作数据库时如果输入该字段的数据为NULL ，就会报错。
+DEFAULT 表示设置一个字段的默认值。
+AUTO_INCREMENT定义列为自增的属性，一般用于主键，数值会自动加1。
+PRIMARY KEY关键字用于定义列为主键。主键的值不能重复。
+
+查看数据表:
+show tables；
+
+查看已有表的字符集:
+show create table book;
+
+查看表结构:
+desc book;
+
+删除表:
+drop table book;
+
+数据阶段
+添加数据:
+insert into books values (1,"老人与海","海明威","35.8","机械工业出版社","带给你勇气");
+
+删除表中内容:
+delete from book where author = "佚名";
+
+更新表记录:
+update book set publication_date = "2015-10-20" where id = 1;
+
+查找表中内容:
+select * from book where price > 40;
+select * from book where publication = "中国邮电出版社" and price < 45;
+select * from book where price > 35 and price < 45;
+select title,price from book where author = "鲁迅";
+
+字段阶段
+添加字段:
+alter table book add publication_date date after price;
+
+删除字段:
+alter table book drop publication_date;
+
+修改表名:
+alter table books rename as book;
+
+修改数据类型:
+alter table book modify publication_date timestamp default now();
+
+修改字段名:
+alter table book change publiaction_date publiaction_time timestamp default now();
+
+其他
+时间查询(interval为函数):
+select * from book where publication_date > (curdate() - interval 4 year);
+
+模糊查询:
+select * from book where publication like "%中国%";
+
+排列查询(默认升序,末尾加desc为降序):
+select * from book order by publication_date;
+
+排列和限制查找:
+select * from book order by price desc limit 2;
+limit m,n 从第(m+1)条开始,显示n条
+
+联合查询(不带all会自动删除重复的数据):
+select * from class where sex='m' UNION ALL select * from class_1 where age > 9;
+
+备份数据库:
+mysqldump -uroot -p stu > ./stu.sql
+
+备份多个数据库:
+mysqldump -uroot -p -B stu books > ./bak.sql
+
+导入数据库:
+mysql -uroot -p student < ./stu.sql
+
+数据类型:
+数值类型:
+int 4字节  smallint 2字节  tinyint 1字节  bigint 8字节
+float  decimal(7,3) 0000.000 
+
+字符类型:
+char()定长  varchar()变长  text  blob
+varchar预留1-2字节 用于存储当前字段实际存储的数据长度  
+
+枚举类型:
+enum()  set()
+
+日期时间类型:
+date  datetime  timestamp  time  year
+每个表都要带
+created_time - datetime
+updated_time - datetime
+
+日期时间函数:
+NOW()  CURDATE()  CURTIME()  YEAR(字段名)
+
+日期时间运算:
+select * from 表名 where 字段名 运算符(NOW()-interval 间隔);
+select * from user_pay where created_time <(NOW()-interval 1 year);
+
+*******************************
+
+查询顺序
+3、select ...聚合函数 from 表名
+1、where ...
+2、group by ...
+4、having ...
+5、order by ...
+6、limit ...;
+
+聚合函数
+avg(字段名)        该字段的平均值       
+max(字段名)        该字段的最大值       
+min(字段名)        该字段的最小值       
+sum(字段名)        该字段所有记录的和   
+count(字段名)      count(*)可统计所有数据,包括值为null  统计该字段记录的个数 
+
+
+group by  给查询的结果进行分组
+--所有国家的男英雄中 英雄数量最多的前2名的 国家名称及英雄数量
+select country,count(*) from sanguo where gender='m' group by country order by count(*) desc limit 2;
+--group by后字段名必须要为select后的字段
+--查询字段和group by后字段不一致,则必须对该字段进行聚合处理(聚合函数)
+
+
+having语句  对分组聚合后的结果进行进一步筛选
+--找出平均攻击力大于105的国家的前2名,显示国家名称和平均攻击力
+select country,avg(attack) from sanguo group by country having avg(attack)>105 order by avg(attack) desc limit 2;
+--注意
+--having语句通常与group by联合使用
+--having语句存在弥补了where关键字不能与聚合函数联合使用的不足,where只能操作表中实际存在的字段,having操作的是聚合函数生成的显示列
+
+
+distinct语句  不显示字段重复值
+--表中都有哪些国家
+select distinct country from sanguo;
+--计算一共有多少个国家
+select count(distinct country) from sanguo;
+--注意
+--distinct和from之间所有字段都相同才会去重
+--distinct不能对任何字段做聚合处理
+
+查询表记录时做数学运算   运算符 ： +  -  *  /  %  **
+--查询时显示攻击力翻倍
+select name,attack*2 from sanguo;
+--更新蜀国所有英雄攻击力 * 2
+update sanguo set attack=attack*2 where country='蜀国';
+
+
+外键
+foreign key(参考字段名)
+references 主表(被参考字段名)
+on delete 级联动作
+on update 级联动作
+
+alter table 表名 drop foreign key 外键名;
+​外键名 ：show create table 表名;
+
+级联动作
+cascade
+​数据级联删除、更新(参考字段)
+restrict(默认)
+​从表有相关联记录,不允许主表操作
+set null
+​主表删除、更新,从表相关联记录字段值为NULL
+
+
+已有表添加外键
+alter table 表名 add foreign key(参考字段) references 主表(被参考字段) on delete 级联动作 on update 级联动作
+
+
+嵌套查询(子查询)
+--把攻击值小于平均攻击值的英雄名字和攻击值显示出来
+select name,attack from sanguo where attack < (select avg(attack) from sanguo);
+--找出每个国家攻击力最高的英雄的名字和攻击值(子查询)
+select name,attack from sanguo where (country,attack) in(select country,max(attack) from sanguo group by country); 
+
+
+多表查询
+select province.pname,city.cname from province,city where city.cp_id = province.pid;
+select province.pname,city.cname,county.coname from province,city,county where city.cp_id = province.pid and county.copid = city.cid;
+
+
+连接查询
+select 字段名 from  表1 inner join 表2 on 条件 inner join 表3 on 条件;
+--显示省市详细信息
+select province.pname,city.cname from province inner join city on city.cp_id = province.pid;
+--显示 省 市 县 详细信息
+select province.pname,city.cname,county.coname from province inner join city on city.cp_id = province.pid inner join county on county.copid = city.cid;
+
+
+左外连接   以左表为主显示查询结果
+select 字段名 from 表1 left join 表2 on 条件 left join 表3 on 条件;
+--显示 省 市 详细信息（要求省全部显示）
+  select province.pname,city.cname from province left join city on city.cp_id = province.pid;
+ 
+右外连接   用法同左连接,以右表为主显示查询结果
+select 字段名 from 表1 right join 表2 on 条件 right join 表3 on 条件;
+
+
+数据导入
+load data infile "文件名"
+into table 表名
+fields terminated by "分隔符"
+lines terminated by "\n"
+
+sudo so 
+cd /var/lib/mysql-files/
+cp /home/tarena/scoreTable.csv .
+
+load data infile '/var/lib/mysql-files/scoreTable.csv'
+into table scoretab
+fields terminated by ','
+lines terminated by '\n'
+
+
+数据导出
+select ... from 表名
+into outfile "文件名"
+fields terminated by "分隔符"
+lines terminated by "分隔符";
+
+select name,attack,country from sanguo into outfile"/var/lib/mysql-files/sanguo.csv" fields terminated by ',' lines terminated by '\n';
+ 
+
+表的复制
+create table 新表名 select 查询命令;
+--复制sanguo表的全部记录和字段,sanguo2
+create table sanguo2 select * from sanguo;
+--复制sanguo表的 id,name,country 三个字段的前3条记录到sanguo4
+create table sanguo4 select id,name,country from sanguo limit 3;
+
+注意:复制表的时候不会把原有表的 KEY 属性复制过来
+复制表结构:create table 表名 select 查询命令 where false;
+
+
+
+mysql中执行如下命令,开启日志监控:
+1.show variables like "reneral%"
+2.set global general_log = "ON"
+3.show variables like "reneral%";确定 general_log处于开启状态
+4.如果为on,则在general_log_file 值对应的 文件地址中 /var/lib/mysql/tedu.log 可查看 所有发到mysql的语句
+开启后,进入python3 manage.py shell 进行orm语句的测试
+注意:objects.xxx 命令为惰性取值,只有在调用的时候,才发出sql语句
+
+
+
+
+
+
+
